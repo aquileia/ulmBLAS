@@ -1,4 +1,5 @@
 #include <ulmblas.h>
+#include <emmintrin.h>
 
 void
 ULMBLAS(dscal)(const int    n,
@@ -6,41 +7,35 @@ ULMBLAS(dscal)(const int    n,
                double       *x,
                const int    incX)
 {
-//
-//  Local scalars
-//
-    int    i, m;
-
-//
 //  Quick return if possible
 //
-    if (n<=0 || incX<=0) {
+    if (n<=0 || incX<=0 || alpha == 1.0) {
         return;
     }
     if (incX==1) {
-//
-//      Code for increment equal to 1
-//
-        m = n % 5;
-        if (m!=0) {
-            for (i=0; i<m; ++i) {
-                x[i] *= alpha;
-            }
-            if (n<5) {
-                return;
-            }
+        //remaining elements
+        int r = n;
+        //fix alignment if necessary
+        if (!IS_ALIGNED(x,16)) {
+            x[0] *= alpha;
+            r--;
+            x++;
         }
-        for (i=m; i<n; i+=5) {
-            x[i  ] *= alpha;
-            x[i+1] *= alpha;
-            x[i+2] *= alpha;
-            x[i+3] *= alpha;
-            x[i+4] *= alpha;
+	__m128d x01, a = _mm_load_pd1(&alpha);
+	for (; r>1; x+=2, r-=2) {
+	    x01 = _mm_load_pd(x);
+	    x01 = _mm_mul_pd(a, x01);
+	    _mm_store_pd(x,x01);
+	}
+        //last element done?
+	if (r) {
+	    (*x) *= alpha;
         }
     } else {
 //
 //      Code for increment not equal to 1
 //
+        int i;
         for (i=0; i<n; ++i, x+=incX) {
             (*x) *= alpha;
         }
