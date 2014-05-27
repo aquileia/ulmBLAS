@@ -6,3 +6,5 @@
 #else
 #   define ULMBLAS(x) ULM_##x
 #endif
+
+#define IS_ALIGNED(X,N) ( ! ((size_t) X & N) )
