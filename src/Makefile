@@ -4,7 +4,7 @@ CFLAGS  += -Wall -I.. -O3
 DIRS             = level1 level3 auxiliary
 SOURCE_FILES     = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.c))
 OBJECT_FILES     = $(SOURCE_FILES:.c=.o)
-ATL_SOURCE_FILES = $(foreach dir, $(DIRS), $(patsubst $(dir)/%.c, $(dir)/atl_%.c,$(SOURCE_FILES)))
+ATL_SOURCE_FILES = $(foreach file, $(SOURCE_FILES), $(dir $(file))atl_$(notdir $(file)))
 ATL_OBJECT_FILES = $(ATL_SOURCE_FILES:.c=.o)
 
 ULMBLAS      = ../libulmblas.a
