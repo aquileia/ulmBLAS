@@ -2,6 +2,8 @@
 #include <math.h>
 #include <level1/dgescal.h>
 
+#define MC 16
+
 //
 //  Solve A*X = alpha*B
 //
@@ -11,6 +13,30 @@
 
 void
 dtrsm_u(enum Diag       diag,
+        int             m,
+        int             n,
+        double          alpha,
+        const double    *A,
+        int             incRowA,
+        int             incColA,
+        double          *B,
+        int             incRowB,
+        int             incColB)
+{
+    //all but the last diagonal block
+    int I = (m-1)/MC;
+    for (int i=0; i<I; ++i) {
+        dtrsb_u(diag, MC, n, alpha, A, incRowA, incColA, B, incRowB, incColB);
+        dgemm_nn();
+        A += MC*(incRowA+incColA);
+        B += MC*incRowB;
+    }
+    I = m % MC;
+    dtrsb_u(diag, I? I:MC, n, alpha, A, incRowA, incColA, B, incRowB, incColB);
+}
+
+void
+dtrsb_u(enum Diag       diag,
         int             m,
         int             n,
         double          alpha,
