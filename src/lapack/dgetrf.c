@@ -5,7 +5,6 @@
 #include <level1/dswap.h>
 #include <level1/idamax.h>
 #include <level2/dger.h>
-
 #include <stdio.h>
 
 static double
@@ -33,9 +32,9 @@ dgetf2(int     m,
        int     incColA,
        int     *piv)
 {
-    int i, j, jp, info;
+    int j, jp, info;
 
-    double sMin = safeMin();
+    double *a21, sMin = safeMin();
 
     info = 0;
 
@@ -46,22 +45,27 @@ dgetf2(int     m,
     for (j=0; j<min(m,n); ++j) {
         jp = j+idamax(m-j, &A[j*incRowA+j*incColA], incRowA);
         piv[j] = jp;
-
+        if (A[jp*incRowA+j*incColA] == 0.0){
+            info = info?info:j+1;
+            continue;
+        }
         if (j != jp) {
-            dswap(n, A+j*incRowA, incRowA, A+jp*incRowA, incRowA);
+            dswap(n, A+j*incRowA, incColA, A+jp*incRowA, incColA);
         }
         double ajj = A[j*incRowA+j*incColA];
         if (fabs(ajj) > sMin) {
-            dscal(n-j, 1/ajj, A+(j+1)*incColA, incColA);
+            dscal(m-j-1, 1/ajj, A+(j+1)*incRowA+j*incColA, incRowA);
         } else {
-            for (double *a21 = A+(j+1)*incColA; a21 < A+m*incColA ; a21 += incColA) {
-                a21 /= ajj;
+            for (a21 = A+(j+1)*incRowA+j*incColA; a21 < A+m*incRowA ; a21 += incRowA) {
+                *a21 /= ajj;
             } 
         }
-        dgemm_nn(m-j, n-j, 1, -1, 
-                 A+(j+1)*incColA, incRowA, incColA, 
-                 A+(j+1)*incRowA, incRowA, incColA,
-                 A+(j+1)*incRowA+j*incColA, incRowA, incColA);
+        if (j<min(m,n)-1){
+            dger(m-j-1, n-j-1, -1.0, 
+                     A+(j+1)*incRowA+  j  *incColA, incRowA,
+                     A+  j  *incRowA+(j+1)*incColA, incColA, 
+                     A+(j+1)*incRowA+(j+1)*incColA, incRowA, incColA);
+        }
     }
     return info;
 }
